@@ -29,7 +29,6 @@ class TM1640:
 
         self._buf = bytearray(17)  # Max is one command byte followed by 16 data bytes
 
-        # FIXME: Set clock high
         self._init_display()
 
     def _send(self, length):
@@ -90,8 +89,6 @@ class TM1640:
         Send the given frame to the display. Data is an int, interpreted as big endian
         """
         assert 0 <= addr < 0x10
-        self._buf[0] = _CMD_DATA_AUTO
-        self._send(1)
         self._buf[0] = _CMD_ADDR | addr
         self._buf[1:17] = data.to_bytes(16, 'big')
         self._send(17)
