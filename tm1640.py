@@ -32,8 +32,6 @@ class TM1640:
         self._init_display()
 
     def _send(self, length):
-        print('>', ' '.join(hex(n) for n in self._buf[:length]))
-
         # 1. Set Clock low
         self.data.value = False
         self.clock.value = False

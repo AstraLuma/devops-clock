@@ -20,6 +20,17 @@ time.sleep(5)
 
 frame = 1
 
+print("shimmer")
+FRAME1 = 0x80_00_00_00_00_00_00_00_00_00_00_00_00_00_00_00
+FRAME2 = 0x00_00_00_00_00_00_00_00_00_00_00_00_00_00_80_00
+DELAY = 0.1
+
+while False:
+    tm.set_data_int(0, FRAME1)
+    time.sleep(DELAY)
+    tm.set_data_int(0, FRAME2)
+    time.sleep(DELAY)
+
 print("Individual")
 while True:
     tm.set_data_int(0, frame)
