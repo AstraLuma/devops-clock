@@ -1,41 +1,49 @@
 import time
+import os
 
-import busio
-import digitalio
 import board
-from adafruit_bus_device.spi_device import SPIDevice
+import rtc
+import socketpool
+import wifi
+
+import adafruit_ntp
 
 import tm1640
+
+
+LOADING = 0x00_00_80_00_00_00_00_00_00_00_00_00_00_00_00_00
 
 print("Setup")
 tm = tm1640.TM1640(board.SCK, board.MOSI)
 
 tm.display_on(7)
 
-MASK = 0xFF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF_FF
+print("NTP...")
+tm.set_data_int(0, LOADING)
 
-print("All in")
-tm.set_data_int(0, MASK)
-time.sleep(5)
+pool = socketpool.SocketPool(wifi.radio)
+
+ntp = adafruit_ntp.NTP(
+    pool,
+    tz_offset=os.getenv("TZ_OFFSET", 0),
+    socket_timeout=60,
+)
+
+while True:
+    try:
+        rtc.RTC().datetime = ntp.datetime
+    except Exception:
+        continue
+    else:
+        break
 
 frame = 1
-
-print("shimmer")
-FRAME1 = 0x80_00_00_00_00_00_00_00_00_00_00_00_00_00_00_00
-FRAME2 = 0x00_00_00_00_00_00_00_00_00_00_00_00_00_00_80_00
-DELAY = 0.1
-
-while False:
-    tm.set_data_int(0, FRAME1)
-    time.sleep(DELAY)
-    tm.set_data_int(0, FRAME2)
-    time.sleep(DELAY)
-
-print("Individual")
 while True:
+    print(time.localtime())
+
     tm.set_data_int(0, frame)
-    time.sleep(0.1)
     frame <<= 1
-    if not frame & MASK:
-        frame = 1
-        print('.')
+    if not frame & tm1640.FRAME_MASK:
+        frame = 0
+
+    time.sleep(60)
