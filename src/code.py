@@ -10,13 +10,14 @@ import adafruit_ntp
 
 import tm1640
 
+from face import render_timestamp
 
 LOADING = 0x00_00_80_00_00_00_00_00_00_00_00_00_00_00_00_00
 
 print("Setup")
 tm = tm1640.TM1640(board.SCK, board.MOSI)
 
-tm.display_on(7)
+tm.display_on(2)
 
 print("NTP...")
 tm.set_data_int(0, LOADING)
@@ -39,11 +40,6 @@ while True:
 
 frame = 1
 while True:
-    print(time.localtime())
-
-    tm.set_data_int(0, frame)
-    frame <<= 1
-    if not frame & tm1640.FRAME_MASK:
-        frame = 0
-
-    time.sleep(60)
+    t = time.localtime()
+    tm.set_data_int(0, render_timestamp(t))
+    time.sleep(10)
