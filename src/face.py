@@ -12,6 +12,16 @@ SEVEN_SEGMENTS = {
     9: 0b0110_1111,
 }
 
+DAYS_OF_WEEK = {
+    0: 0x00_00_26_13_46_51_07_13_00_00_00_00_00_00_00_00,  # MON
+    1: 0x00_00_48_59_46_11_10_44_00_00_00_00_00_00_00_00,  # TUE
+    2: 0x00_00_56_44_48_59_26_31_00_00_00_00_00_00_00_00,  # WED
+    3: 0x00_00_46_11_0E_19_10_44_00_00_00_00_00_00_00_00,  # THU
+    4: 0x00_00_50_44_2A_59_00_59_00_00_00_00_00_00_00_00,  # FRI
+    5: 0x00_00_10_44_0E_59_4C_49_00_00_00_00_00_00_00_00,  # SAT
+    6: 0x00_00_26_13_46_11_4C_49_00_00_00_00_00_00_00_00,  # SUN
+}
+
 COLON = 0x00_00_00_00_00_00_00_00_00_00_00_00_00_80_80_00
 SLASH = 0x00_00_00_00_10_20_00_00_00_00_00_00_00_00_00_00
 
@@ -38,8 +48,13 @@ def render_date(day, month):
     return frame
 
 
+def render_dow(day):
+    return DAYS_OF_WEEK[day]
+
+
 def render_timestamp(time):
     frame = 0
     frame |= render_time(time.tm_hour, time.tm_min)
     frame |= render_date(time.tm_mday, time.tm_mon)
+    frame |= render_dow(time.tm_wday)
     return frame
