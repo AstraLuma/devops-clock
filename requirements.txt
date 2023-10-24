@@ -1,3 +1,2 @@
 circuitpython_schedule
-adafruit_ntp
 adafruit_magtag

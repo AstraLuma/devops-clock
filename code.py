@@ -12,7 +12,7 @@ import wifi
 
 from adafruit_magtag.magtag import MagTag
 import adafruit_minimqtt.adafruit_minimqtt as MQTT
-import adafruit_ntp
+import augmented_ntp
 import circuitpython_schedule as schedule
 
 magtag = MagTag()
@@ -66,7 +66,7 @@ while True:
 
 pool = socketpool.SocketPool(wifi.radio)
 
-ntp = adafruit_ntp.NTP(
+ntp = augmented_ntp.NTP(
     pool,
     tz_offset=os.getenv("TZ_OFFSET", 0),
     socket_timeout=60,
@@ -119,7 +119,7 @@ magtag.set_text("NTP...", 1)
 print("Grabbing time")
 while True:
     try:
-        rtc.RTC().datetime = ntp.datetime
+        rtc.RTC().datetime = ntp.localtime
     except Exception:
         continue
     else:
