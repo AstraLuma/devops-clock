@@ -23,6 +23,8 @@ Implementation Notes
 import struct
 import time
 
+import adafruit_requests
+
 __version__ = "0.0.0+auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_NTP.git"
 
@@ -40,11 +42,14 @@ class NTP:
     def __init__(
         self,
         socketpool,
+        session=None,
         *,
-        server: str = "0.adafruit.pool.ntp.org",
+        server: str = "adafruit.pool.ntp.org",
         port: int = 123,
         tz_offset: float = 0,
         socket_timeout: int = 10,
+        timezone: str = 'Etc/UTC',
+        tz_server: str = 'http://10.6.30.109:8000',
     ) -> None:
         """
         :param object socketpool: A socket provider such as CPython's `socket` module.
@@ -54,17 +59,48 @@ class NTP:
         :param int socket_timeout: UDP socket timeout, in seconds.
         """
         self._pool = socketpool
+        self._session = session or adafruit_requests.Session(socketpool)
         self._server = server
         self._port = port
         self._packet = bytearray(48)
-        self.tz_offset = tz_offset
+        self._tz_offset = tz_offset
         self._socket_timeout = socket_timeout
+        self._timezone = timezone
+        self.tz_server = tz_server
 
         # This is our estimated start time for the monotonic clock. We adjust it based on the ntp
         # responses.
         self._monotonic_start = 0
 
         self.next_sync = 0
+        self.next_tz = 0
+
+    @property
+    def timezone(self) -> str:
+        return self._timezone
+
+    @timezone.setter
+    def timezone(self, value: str):
+        self._timezone = value
+        self.next_tz = 0
+
+    @property
+    def tz_offset(self) -> int:
+        if (time.monotonic() + self._monotonic_start) > self.next_tz:
+            resp = self._session.get(
+                f"{self.tz_server}/tz/{self.timezone}",
+                headers={'Accept': 'application/json'},
+            )
+            assert resp.status_code == 200, f"{resp.status_code} {resp.reason}"
+            info = resp.json()
+            self._tz_offset = info['utc_offset'] or 0
+            self.next_tz = info['next_change']
+
+        return self._tz_offset
+
+    @tz_offset.setter
+    def tz_offset(self, value):
+        self._tz_offset = value
 
     @property
     def timestamp(self) -> int:
@@ -106,16 +142,3 @@ class NTP:
     @property
     def localtime(self) -> time.struct_time:
         return time.localtime(self.timestamp + self.tz_offset)
-
-
-def get_tz_info(session, tz, *, server='http://10.6.30.109:8000'):
-    """
-    Given a timezone name, get metadata about it.
-    """
-    # FIXME: Status codes
-    resp = session.get(f"{server}/tz/{tz}",
-                       headers={'Accept': 'application/json'},
-                       )
-    assert resp.status_code == 200, f"{resp.status_code} {resp.reason}"
-    info = resp.json()
-    return info['utc_offset'] or 0, info['next_change']

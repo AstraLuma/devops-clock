@@ -71,13 +71,14 @@ http = adafruit_requests.Session(pool)
 
 ntp = augmented_ntp.NTP(
     pool,
+    http,
+    timezone=os.getenv('TIMEZONE', 'Etc/UTC'),
     tz_offset=0,
     socket_timeout=60,
 )
 
 magtag.set_text("NTP...", 1)
 print("Grabbing time")
-ntp.tz_offset, _ = augmented_ntp.get_tz_info(http, os.getenv('TIMEZONE'))
 while True:
     try:
         rtc.RTC().datetime = ntp.localtime
