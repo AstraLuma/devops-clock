@@ -106,3 +106,16 @@ class NTP:
     @property
     def localtime(self) -> time.struct_time:
         return time.localtime(self.timestamp + self.tz_offset)
+
+
+def get_tz_info(session, tz, *, server='http://10.6.30.109:8000'):
+    """
+    Given a timezone name, get metadata about it.
+    """
+    # FIXME: Status codes
+    resp = session.get(f"{server}/tz/{tz}",
+                       headers={'Accept': 'application/json'},
+                       )
+    assert resp.status_code == 200, f"{resp.status_code} {resp.reason}"
+    info = resp.json()
+    return info['utc_offset'] or 0, info['next_change']

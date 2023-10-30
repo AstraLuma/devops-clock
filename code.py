@@ -12,6 +12,7 @@ import wifi
 
 from adafruit_magtag.magtag import MagTag
 import adafruit_minimqtt.adafruit_minimqtt as MQTT
+import adafruit_requests
 import augmented_ntp
 import circuitpython_schedule as schedule
 
@@ -65,58 +66,18 @@ while True:
         break
 
 pool = socketpool.SocketPool(wifi.radio)
+http = adafruit_requests.Session(pool)
+
 
 ntp = augmented_ntp.NTP(
     pool,
-    tz_offset=os.getenv("TZ_OFFSET", 0),
+    tz_offset=0,
     socket_timeout=60,
 )
 
-aio_username = os.getenv("AIO_USER")
-aio_key = os.getenv("AIO_KEY")
-
-text_feed = f"{aio_username}/feeds/paging.text"
-
-
-def connected(client, userdata, flags, rc):
-    # This function will be called when the client is connected
-    # successfully to the broker.
-    print(
-        f"Connected to Adafruit IO! Listening for topic changes on {text_feed}")
-    client.subscribe(text_feed, qos=1)
-    # Only because we're not using persistent messages.
-    magtag.set_text("", 1)
-
-
-def disconnected(client, userdata, rc):
-    # This method is called when the client is disconnected
-    print("Disconnected from Adafruit IO!")
-
-
-def message(client, topic, message):
-    # This method is called when a topic the client is subscribed to
-    # has a new message.
-    print(f"New message on topic {topic}: {message}")
-    magtag.set_text(message, 1)
-
-
-ssl_context = ssl.create_default_context()
-mqtt_client = MQTT.MQTT(
-    broker="io.adafruit.com",
-    port=1883,
-    username=aio_username,
-    password=aio_key,
-    socket_pool=pool,
-    ssl_context=ssl_context,
-)
-
-# Setup the callback methods above
-mqtt_client.on_connect = connected
-mqtt_client.on_disconnect = disconnected
-mqtt_client.on_message = message
-
 magtag.set_text("NTP...", 1)
 print("Grabbing time")
+ntp.tz_offset, _ = augmented_ntp.get_tz_info(http, os.getenv('TIMEZONE'))
 while True:
     try:
         rtc.RTC().datetime = ntp.localtime
@@ -124,10 +85,6 @@ while True:
         continue
     else:
         break
-
-
-print("Connecting to MQTT")
-mqtt_client.connect()
 
 
 def sync_ntp():
@@ -141,10 +98,11 @@ def sync_ntp():
 schedule.every(15).minutes.do(sync_ntp)
 
 
+magtag.set_text('', 1)
+
 refresh_display()
 
 print("Starting loop")
 while True:
-    mqtt_client.loop()
     schedule.run_pending()
     time.sleep(1)
