@@ -16,6 +16,10 @@ import adafruit_requests
 import augmented_ntp
 import circuitpython_schedule as schedule
 
+from nvstate import NVState
+
+state = NVState()
+
 magtag = MagTag()
 magtag.add_text(
     text_position=(
@@ -73,15 +77,16 @@ ntp = augmented_ntp.NTP(
     pool,
     http,
     timezone=os.getenv('TIMEZONE', 'Etc/UTC'),
-    tz_offset=0,
+    tz_offset=state.tz_offset,
     socket_timeout=60,
 )
 
 magtag.set_text("NTP...", 1)
 print("Grabbing time")
+
 while True:
     try:
-        rtc.RTC().datetime = ntp.localtime
+        _ = ntp.timestamp
     except Exception:
         continue
     else:
@@ -91,11 +96,13 @@ while True:
 def sync_ntp():
     print("Resyncing Time")
     try:
-        rtc.RTC().datetime = ntp.datetime
+        rtc.RTC().datetime = ntp.localtime
     except Exception as exc:
         print("Error pulling NTP:", exc)
+    state.tz_offset = ntp.tz_offset
 
 
+sync_ntp()
 schedule.every(15).minutes.do(sync_ntp)
 
 
