@@ -97,9 +97,9 @@ def sync_ntp():
     print("Resyncing Time")
     try:
         rtc.RTC().datetime = ntp.localtime
+        state.tz_offset = ntp.tz_offset
     except Exception as exc:
         print("Error pulling NTP:", exc)
-    state.tz_offset = ntp.tz_offset
 
 
 sync_ntp()
