@@ -17,6 +17,7 @@ import augmented_ntp
 import circuitpython_schedule as schedule
 
 from nvstate import NVState
+import sse
 
 state = NVState()
 
@@ -81,6 +82,8 @@ ntp = augmented_ntp.NTP(
     socket_timeout=60,
 )
 
+feed = sse.EventSource(http, 'http://10.6.30.109:8000/streams/plain')
+
 magtag.set_text("NTP...", 1)
 print("Grabbing time")
 
@@ -112,5 +115,7 @@ refresh_display()
 
 print("Starting loop")
 while True:
+    print("Loop")
+    feed.loop()
     schedule.run_pending()
     time.sleep(1)
